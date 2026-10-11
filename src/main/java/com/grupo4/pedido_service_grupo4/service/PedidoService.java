@@ -1,4 +1,3 @@
-
 package com.grupo4.pedido_service_grupo4.service;
 
 import com.grupo4.pedido_service_grupo4.client.PagoFeignClient;
@@ -24,7 +23,6 @@ public class PedidoService {
         this.pagoFeignClient = pagoFeignClient;
         this.pedidos = new HashMap<>();
 
-        // Primer pedido de ejemplo
         List<DetallePedidoDTO> detalles1 = new ArrayList<>();
 
         detalles1.add(new DetallePedidoDTO(
@@ -47,7 +45,6 @@ public class PedidoService {
 
         pedidos.put(pedido1.getIdPedido(), pedido1);
 
-        // Segundo pedido de ejemplo
         List<DetallePedidoDTO> detalles2 = new ArrayList<>();
 
         detalles2.add(new DetallePedidoDTO(
@@ -67,15 +64,12 @@ public class PedidoService {
         pedidos.put(pedido2.getIdPedido(), pedido2);
     }
 
-    // Calcular el total del pedido
     public Double calcularTotal(List<DetallePedidoDTO> detalles) {
         return detalles.stream()
-                .mapToDouble(detalle ->
-                        detalle.getCantidad() * detalle.getPrecioUnitario())
+                .mapToDouble(detalle -> detalle.getSubtotal())
                 .sum();
     }
 
-    // Buscar un pedido por su identificador
     public PedidoResponseDTO buscarPorId(Long idPedido) {
         PedidoResponseDTO pedido = pedidos.get(idPedido);
 
@@ -83,7 +77,6 @@ public class PedidoService {
             return null;
         }
 
-        // Recalcular el total a partir de los detalles
         pedido.setMontoTotalCalculado(
                 calcularTotal(pedido.getListaDetalles())
         );
@@ -91,7 +84,6 @@ public class PedidoService {
         return pedido;
     }
 
-    // Listar pedidos de un cliente
     public List<PedidoResponseDTO> listarPorCliente(Long clienteId) {
         return pedidos.values().stream()
                 .filter(pedido ->
@@ -99,7 +91,6 @@ public class PedidoService {
                 .toList();
     }
 
-    // Actualizar manualmente el estado de un pedido
     public PedidoResponseDTO actualizarEstado(
             Long idPedido, String nuevoEstado) {
 
@@ -112,7 +103,6 @@ public class PedidoService {
         return pedido;
     }
 
-    // Verificar el pago y completar el pedido
     public PedidoResponseDTO verificarYCompletar(Long idPedido) {
 
         PedidoResponseDTO pedido = buscarPorId(idPedido);
@@ -138,25 +128,19 @@ public class PedidoService {
         return pedido;
     }
 
-    // Consolidar pedidos y pagos de un cliente
     public ResumenConsolidadoClienteDTO consolidarCliente(Long clienteId) {
 
-        // Obtener los pedidos del cliente
         List<PedidoResponseDTO> historialPedidos =
                 listarPorCliente(clienteId);
 
-        // Consultar los pagos del cliente mediante Feign
         List<PagoDTO> historialPagos =
                 pagoFeignClient.listarPagosPorCliente(clienteId);
 
-        // Calcular el monto total de los pedidos
         double montoTotal = historialPedidos.stream()
                 .mapToDouble(pedido ->
                         calcularTotal(pedido.getListaDetalles()))
                 .sum();
 
-        // Verificar que cada pedido tenga un pago aprobado
-        // por el importe exacto
         boolean todosPagados = !historialPedidos.isEmpty()
                 && historialPedidos.stream().allMatch(pedido ->
                 historialPagos.stream().anyMatch(pago ->
@@ -175,7 +159,6 @@ public class PedidoService {
                 )
         );
 
-        // Construir el resumen del cliente
         ResumenConsolidadoClienteDTO resumen =
                 new ResumenConsolidadoClienteDTO();
 
